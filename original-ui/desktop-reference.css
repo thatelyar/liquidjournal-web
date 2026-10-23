@@ -40,3 +40,28 @@
 @media (min-width: 1024px) and (max-width: 1279.98px) {
   [data-app-shell] > header .nav-tab { gap: 0; padding-inline: .55rem; }
 }
+
+/* Keep utilities, navigation and branding in separate intrinsic-width groups. */
+@media (min-width: 1024px) {
+  [data-app-shell] > header > div.w-full {
+    display: flex !important;
+    gap: 10px;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  [data-app-shell] > header > div.w-full > a { order: 2; flex: 0 0 auto; padding-inline: 8px; }
+  [data-app-shell] > header > div.w-full > div:nth-child(2) { order: 1; flex: 0 0 auto; gap: 8px; }
+  [data-app-shell] > header > div.w-full > div:nth-child(3) { order: 3; flex: 0 0 auto; min-width: 0; gap: 8px; }
+  [data-app-shell] > header > div.w-full > div:nth-child(2) > span { flex: 0 0 auto; margin-right: 0; }
+  [data-app-shell] > header .nav-tab { white-space: nowrap; }
+}
+@media (min-width: 1024px) and (max-width: 1499px) {
+  [data-app-shell] > header > div.w-full > div:nth-child(2) > span > span { display: none !important; }
+  [data-app-shell] > header .nav-tab { padding-inline: 6px; gap: 4px; }
+}
+@media (min-width: 1024px) and (max-width: 1199px) {
+  [data-app-shell] > header .nav-tab-label { display: none; }
+  [data-app-shell] > header .nav-tab { padding-inline: 7px; }
+}
+[data-demo-switch] { display: none !important; }
+[data-tour="tab-community"] > span:not(.nav-tab-label) { display: none !important; }
