@@ -1,0 +1,42 @@
+/* Desktop dimensions from LiquidJournal's original UI, matching the Mac reference.
+   CSS pixels are intentional; a Retina screenshot contains two device pixels per CSS pixel. */
+@media (min-width: 1024px) {
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html:not([data-app-glass]) [data-app-shell] > header.safe-top {
+    height: calc(44px + var(--sat));
+    flex-shrink: 0;
+  }
+  [data-app-shell] > header [data-text="LiquidJournal"] {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: -.025em;
+    line-height: 1;
+  }
+  [data-app-shell] > header .nav-tab {
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.5;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  [data-app-shell] > header .nav-tab-icon { width: 14px; height: 14px; }
+  html:not([data-app-glass]) [data-app-main].content-card {
+    min-width: 0;
+    margin: 8px;
+    border: 1px solid var(--content-edge);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  [data-app-shell] [data-rail] > div > aside {
+    width: 229px;
+    height: 100%;
+  }
+  html:not([data-app-glass]) [data-app-shell] > footer.safe-bottom {
+    height: calc(36px + var(--sab));
+    flex-shrink: 0;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  [data-app-shell] > header .nav-tab { gap: 0; padding-inline: .55rem; }
+}

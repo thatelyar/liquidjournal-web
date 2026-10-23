@@ -1,0 +1,5 @@
+/* Original Share card faces. App Appearance choices must not replace these. */
+[data-glass-card], [data-capture], [data-share-card] {
+  --font-satoshi: "satoshi", "satoshi Fallback";
+  --font-gambetta: "gambetta", "gambetta Fallback";
+}

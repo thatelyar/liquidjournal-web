@@ -1,0 +1,4 @@
+html[data-desktop-app] { --sat:32px; }
+.desktop-drag-region { position:fixed;z-index:1000;top:0;left:0;right:0;height:32px;background:#000;-webkit-app-region:drag; }
+html[data-desktop-app] [data-app-hide] { display:none!important; }
+html[data-desktop-app] button,html[data-desktop-app] a,html[data-desktop-app] input,html[data-desktop-app] select,html[data-desktop-app] textarea { -webkit-app-region:no-drag; }
