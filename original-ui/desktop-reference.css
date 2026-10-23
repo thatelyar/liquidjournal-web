@@ -65,3 +65,31 @@
 }
 [data-demo-switch] { display: none !important; }
 [data-tour="tab-community"] > span:not(.nav-tab-label) { display: none !important; }
+
+/* Page layout follows the content width after either rail opens. */
+[data-app-main] { container-type: inline-size; container-name: workspace; }
+[data-app-main] :has(> [data-journal-switcher]) {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center; gap: 12px; height: auto !important; min-height: 64px;
+  padding-block: 12px !important;
+}
+[data-app-main] :has(> [data-journal-switcher]) > :first-child { min-width: 0; }
+[data-app-main] :has(> [data-journal-switcher]) > :last-child { justify-self: end; flex-shrink: 0; }
+[data-journal-switcher] {
+  position: static !important; inset: auto !important; transform: none !important;
+  order: 0 !important; width: auto !important; min-width: 0; justify-self: center;
+}
+@container workspace (max-width: 960px) {
+  [data-app-main] :has(> [data-journal-switcher]) { grid-template-columns: minmax(0, 1fr) auto; }
+  [data-app-main] :has(> [data-journal-switcher]) > :first-child { grid-column: 1; grid-row: 1; }
+  [data-app-main] :has(> [data-journal-switcher]) > :last-child { grid-column: 2; grid-row: 1; }
+  [data-journal-switcher] { grid-column: 1 / -1; grid-row: 2; }
+}
+@container workspace (max-width: 560px) {
+  [data-app-main] :has(> [data-journal-switcher]) { grid-template-columns: minmax(0, 1fr); }
+  [data-app-main] :has(> [data-journal-switcher]) > :last-child {
+    grid-column: 1; grid-row: 2; justify-self: start; flex-wrap: wrap; gap: 8px;
+  }
+  [data-journal-switcher] { grid-column: 1; grid-row: 3; max-width: 100%; }
+  [data-journal-switcher] .seg { max-width: 100%; }
+}
