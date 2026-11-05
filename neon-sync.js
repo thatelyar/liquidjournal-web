@@ -42,7 +42,7 @@
 
   async function api(method, path, body, extra) {
     const jwt = await A.jwt();
-    const res = await fetch(A.REST + path, {
+    const res = await A.fetch(A.REST + path, {
       method,
       headers: Object.assign({ Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json' }, extra || {}),
       body: body === undefined ? undefined : JSON.stringify(body),
