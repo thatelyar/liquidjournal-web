@@ -17,13 +17,37 @@
       "purpose": "any"
     },
     {
-      "src": "/liquidjournal-web/icon-512.png",
+      "src": "/liquidjournal-web/icon-ring-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/liquidjournal-web/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/liquidjournal-web/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
+    {
+      "name": "Quick Log",
+      "short_name": "Log Trade",
+      "description": "Log a trade in under 20 seconds",
+      "url": "/liquidjournal-web/#/demo/quick-log",
+      "icons": [
+        {
+          "src": "/liquidjournal-web/icon-ring-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
     {
       "name": "Dashboard",
       "url": "/liquidjournal-web/#/demo/dashboard"
@@ -31,10 +55,11 @@
     {
       "name": "Journal",
       "url": "/liquidjournal-web/#/demo/journal"
-    },
-    {
-      "name": "New trade",
-      "url": "/liquidjournal-web/#/demo/journal/new"
     }
-  ]
+  ],
+  "categories": [
+    "finance",
+    "productivity"
+  ],
+  "orientation": "portrait-primary"
 }
