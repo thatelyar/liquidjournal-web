@@ -1,6 +1,9 @@
 // Neon Auth (Better Auth) + Neon Data API client for the static GitHub Pages build.
 // Only public endpoint URLs live here. No database password or secret key is used in the browser.
 (function (G) {
+  // offline.js later replaces window.fetch with a version that blocks every cross-origin request.
+  // Keep the browser's real fetch so sign-in and cloud sync can still reach Neon.
+  const realFetch = G.fetch.bind(G);
   const BASE = '/liquidjournal-web/';
   const AUTH = 'https://ep-falling-lake-za8hrf6e.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth';
   const REST = 'https://ep-falling-lake-za8hrf6e.apirest.c-2.eu-west-2.aws.neon.tech/neondb/rest/v1';
@@ -14,7 +17,7 @@
     const s = read();
     const headers = { 'Content-Type': 'application/json' };
     if (s && s.token) headers.Authorization = 'Bearer ' + s.token;
-    const res = await fetch(AUTH + path, {
+    const res = await realFetch(AUTH + path, {
       method, headers, credentials: 'include',
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -112,6 +115,7 @@
     },
   };
 
+  Auth.fetch = realFetch;
   G.NeonAuth = Auth;
 
   // ---- Login / sign-up pages -------------------------------------------------
