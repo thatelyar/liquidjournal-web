@@ -152,6 +152,20 @@
     }
   }, true);
 
+
+  // The copied pages use root-absolute links (/auth/signup, /login). Keep them inside this site.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    const raw = a.getAttribute('href') || '';
+    if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith(BASE)) return;
+    const path = raw.split(/[?#]/)[0].replace(/\/+$/, '');
+    const routes = { '/auth/signup': 'auth/signup/', '/login': 'login/', '/auth/login': 'login/' };
+    if (routes[path]) { e.preventDefault(); e.stopImmediatePropagation(); location.href = BASE + routes[path]; return; }
+    if (path === '') { e.preventDefault(); e.stopImmediatePropagation(); location.href = Auth.appUrl(); return; }
+    if (path === '/auth/forgot') { e.preventDefault(); e.stopImmediatePropagation(); showError(document.querySelector('form') || document.body, 'Password reset is not available yet. Create a new account or contact the site owner.'); }
+  }, true);
+
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || !/continue with google/i.test(b.textContent)) return;
