@@ -1,14 +1,44 @@
 // Cloud sync: keeps the workspace snapshot (the same JSON as "Export complete backup") in Neon.
+// Includes profile and appearance (theme, accent, font...), so desktop and phone look the same.
 // Rules: the cloud copy wins unless this browser has changes that were never uploaded.
 (function (G) {
   const A = G.NeonAuth;
   if (!A) return;
   const state = { status: 'idle', error: '', syncedAt: 0, listeners: new Set() };
   const set = (patch) => { Object.assign(state, patch); state.listeners.forEach((f) => f()); };
+  let suppress = false;
+  let ready = false;
+  let busy = false;
   const user = () => A.user();
   const dirtyKey = () => 'liquid-neon-dirty:' + (user() || {}).id;
+  const lastKey = () => 'liquid-neon-remote-at:' + (user() || {}).id;
   const isDirty = () => localStorage.getItem(dirtyKey()) === '1';
   const setDirty = (v) => { try { v ? localStorage.setItem(dirtyKey(), '1') : localStorage.removeItem(dirtyKey()); } catch {} };
+  const rememberRemote = (iso) => { try { localStorage.setItem(lastKey(), String(Date.parse(iso) || Date.now())); } catch {} };
+
+  // ---- Appearance (theme etc.) lives in localStorage; watch it so changes get uploaded ----
+  const APPEARANCE = ['tv-theme', 'tv-accent', 'tv-accent-custom-hex', 'tv-accent-custom-css', 'tv-ink', 'tv-font', 'tv-lines', 'tv-palette-css', 'tv-app-bg', 'tv-app-bg-css', 'tv-app-surface-css'];
+  const isAppearanceKey = (k) => APPEARANCE.includes(String(k).replace(/:demo$/, ''));
+  const changed = () => { if (!suppress) G.dispatchEvent(new Event('liquid-workspace-change')); };
+  const rawSet = Storage.prototype.setItem;
+  const rawRemove = Storage.prototype.removeItem;
+  Storage.prototype.setItem = function (k, v) {
+    const watch = this === G.localStorage && isAppearanceKey(k);
+    const before = watch ? this.getItem(k) : null;
+    rawSet.call(this, k, v);
+    if (watch && before !== String(v)) changed();
+  };
+  Storage.prototype.removeItem = function (k) {
+    const watch = this === G.localStorage && isAppearanceKey(k);
+    const had = watch && this.getItem(k) !== null;
+    rawRemove.call(this, k);
+    if (had) changed();
+  };
+  const localAppearance = () => {
+    const out = {};
+    for (const k of APPEARANCE) for (const s of ['', ':demo']) { const v = localStorage.getItem(k + s); if (v !== null) out[k + s] = v; }
+    return out;
+  };
 
   async function api(method, path, body, extra) {
     const jwt = await A.jwt();
@@ -22,14 +52,32 @@
     return res.status === 204 ? null : res.json().catch(() => null);
   }
 
-  let suppress = false;
-  const importRemote = (data) => { suppress = true; try { G.originalStore.import(Object.assign({}, data, { plan: null })); } finally { suppress = false; } };
+  // Applies a cloud snapshot. Reloads once if the theme/appearance differs, so it takes effect everywhere.
+  function importRemote(data, allowReload) {
+    const hasAppearance = !!(data && data.appearance && typeof data.appearance === 'object');
+    const remoteAppearance = hasAppearance ? data.appearance : {};
+    const local = localAppearance();
+    let differs = false;
+    if (hasAppearance) {
+      for (const k of Object.keys(remoteAppearance)) if (local[k] !== remoteAppearance[k]) differs = true;
+      for (const k of Object.keys(local)) if (!(k in remoteAppearance)) differs = true;
+    }
+    suppress = true;
+    try {
+      G.originalStore.import(Object.assign({}, data, { plan: null }));
+      if (hasAppearance) for (const k of Object.keys(local)) if (!(k in remoteAppearance)) rawRemove.call(localStorage, k);
+    } finally { suppress = false; }
+    if (differs && allowReload !== false) setTimeout(() => location.reload(), 50);
+    return differs;
+  }
   const snapshot = () => JSON.parse(G.originalStore.export());
 
   async function push() {
     const data = snapshot();
     delete data.plan; // the plan preview stays local
-    await api('POST', '/workspaces?on_conflict=user_id', { data, updated_at: new Date().toISOString() }, { Prefer: 'resolution=merge-duplicates,return=minimal' });
+    const at = new Date().toISOString();
+    await api('POST', '/workspaces?on_conflict=user_id', { data, updated_at: at }, { Prefer: 'resolution=merge-duplicates,return=minimal' });
+    rememberRemote(at);
     setDirty(false);
     set({ status: 'synced', error: '', syncedAt: Date.now() });
   }
@@ -47,10 +95,11 @@
       const owner = localStorage.getItem(A.OWNER_KEY);
       const remote = await pull();
       if (remote && (!isDirty() || (owner && owner !== u.id))) {
-        importRemote(remote.data);
         localStorage.setItem(A.OWNER_KEY, u.id);
         setDirty(false);
+        rememberRemote(remote.updated_at);
         set({ status: 'synced', syncedAt: Date.now() });
+        importRemote(remote.data);
         return;
       }
       if (!remote && owner && owner !== u.id) {
@@ -63,12 +112,28 @@
       await push(); // first sign-in on this browser: migrate the local workspace to the account
     } catch (e) {
       set({ status: 'error', error: String(e.message || e) });
-    }
+    } finally { ready = true; }
+  }
+
+  // Cheap check for changes made on another device (runs when the app comes back to the front).
+  async function checkRemote() {
+    if (!ready || busy || !user() || isDirty() || document.visibilityState !== 'visible') return;
+    busy = true;
+    try {
+      const rows = await api('GET', '/workspaces?select=updated_at');
+      const at = rows && rows[0] && Date.parse(rows[0].updated_at);
+      if (!at || at <= Number(localStorage.getItem(lastKey()) || 0)) return;
+      const remote = await pull();
+      if (!remote || isDirty()) return;
+      rememberRemote(remote.updated_at);
+      importRemote(remote.data);
+      set({ status: 'synced', error: '', syncedAt: Date.now() });
+    } catch {} finally { busy = false; }
   }
 
   let timer = null;
   function schedule() {
-    if (!user() || suppress) return;
+    if (!user() || suppress || !ready) return;
     setDirty(true);
     clearTimeout(timer);
     timer = setTimeout(() => { set({ status: 'syncing' }); push().catch((e) => set({ status: 'error', error: String(e.message || e) })); }, 2000);
@@ -80,11 +145,16 @@
     now: async () => { clearTimeout(timer); set({ status: 'syncing', error: '' }); try { await push(); } catch (e) { set({ status: 'error', error: String(e.message || e) }); throw e; } },
     // Push pending changes before leaving; resolves false if the cloud copy could not be updated.
     flush: async () => { if (!user() || !isDirty()) return true; try { await G.NeonSync.now(); return true; } catch { return false; } },
-    pullNow: async () => { const r = await pull(); if (r) { importRemote(r.data); setDirty(false); set({ status: 'synced', syncedAt: Date.now() }); } return !!r; },
+    pullNow: async () => { const r = await pull(); if (r) { setDirty(false); rememberRemote(r.updated_at); importRemote(r.data); set({ status: 'synced', syncedAt: Date.now() }); } return !!r; },
   };
 
   G.addEventListener('liquid-workspace-ready', initial);
   G.addEventListener('liquid-workspace-change', schedule);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && isDirty() && user()) { clearTimeout(timer); push().catch(() => {}); } });
-  G.addEventListener('online', () => { if (user() && isDirty()) schedule(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && isDirty() && user()) { clearTimeout(timer); push().catch(() => {}); }
+    if (document.visibilityState === 'visible') checkRemote();
+  });
+  G.addEventListener('pageshow', () => checkRemote());
+  G.addEventListener('online', () => { if (user() && isDirty()) schedule(); else checkRemote(); });
+  setInterval(checkRemote, 60000);
 })(globalThis);
