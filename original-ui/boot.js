@@ -35,7 +35,7 @@ const sampleStudy=JSON.parse(JSON.stringify(study.getState()));
 const profileModule=ui.require(18754),profileListeners=new Set();let profileValue;
 try{profileValue=JSON.parse(localStorage.getItem('liquid-personal-profile')||'null')}catch{}
 profileValue=profileValue||{...profileModule.DEFAULT_PROFILE,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'};
-const personalProfile={get profile(){return profileValue},updateProfile(patch){profileValue={...profileValue,...patch};localStorage.setItem('liquid-personal-profile',JSON.stringify(profileValue));profileListeners.forEach(fn=>fn())}};
+const personalProfile={get profile(){return profileValue},updateProfile(patch){profileValue={...profileValue,...patch};localStorage.setItem('liquid-personal-profile',JSON.stringify(profileValue));profileListeners.forEach(fn=>fn());try{if(!restoring){persist().catch(()=>{});window.dispatchEvent(new Event('liquid-workspace-change'))}}catch{}}};
 const usePersonalProfile=selector=>{const profile=React.useSyncExternalStore(fn=>(profileListeners.add(fn),()=>profileListeners.delete(fn)),()=>profileValue,()=>profileValue);return (selector||((s)=>s))({profile,updateProfile:personalProfile.updateProfile})};
 Object.assign(usePersonalProfile,{getState:()=>personalProfile,setState(patch){if(patch.profile)personalProfile.updateProfile(patch.profile)},subscribe(fn){profileListeners.add(fn);return()=>profileListeners.delete(fn)}});
 ui.override(18754,{...profileModule,DEMO_NAME:'',DEMO_BIO:'',useProfile:usePersonalProfile,useRealProfile:usePersonalProfile});
