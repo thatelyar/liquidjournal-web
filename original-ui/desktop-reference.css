@@ -64,7 +64,7 @@
   [data-app-shell] > header .nav-tab { padding-inline: 7px; }
 }
 [data-demo-switch] { display: none !important; }
-[data-tour="tab-community"] > span:not(.nav-tab-label) { display: none !important; }
+[data-app-shell] > header [data-tour="tab-community"] > span:not(.nav-tab-label) { display: none !important; }
 
 /* Page layout follows the content width after either rail opens. */
 [data-app-main] { container-type: inline-size; container-name: workspace; }
