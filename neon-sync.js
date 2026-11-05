@@ -72,6 +72,29 @@
   }
   const snapshot = () => JSON.parse(G.originalStore.export());
 
+  // Combine two workspace snapshots without losing records: lists are merged by id,
+  // other values come from `prefer` ("local" or "remote") when both sides have one.
+  function mergeData(local, remote, prefer) {
+    const isRec = (x) => x && typeof x === 'object' && !Array.isArray(x) && 'id' in x;
+    if (Array.isArray(local) && Array.isArray(remote)) {
+      if (local.every(isRec) && remote.every(isRec)) {
+        const localIds = new Set(local.map((x) => x.id));
+        const remoteIds = new Set(remote.map((x) => x.id));
+        return prefer === 'local' ? local.concat(remote.filter((x) => !localIds.has(x.id))) : remote.concat(local.filter((x) => !remoteIds.has(x.id)));
+      }
+      return prefer === 'local' ? (local.length ? local : remote) : (remote.length ? remote : local);
+    }
+    if (local && remote && typeof local === 'object' && typeof remote === 'object' && !Array.isArray(local) && !Array.isArray(remote)) {
+      const out = Object.assign({}, remote);
+      for (const k of Object.keys(local)) out[k] = k in remote ? mergeData(local[k], remote[k], prefer) : local[k];
+      return out;
+    }
+    if (local === undefined || local === null) return remote;
+    if (remote === undefined || remote === null) return local;
+    return prefer === 'local' ? local : remote;
+  }
+
+
   async function push() {
     const data = snapshot();
     delete data.plan; // the plan preview stays local
@@ -94,6 +117,15 @@
     try {
       const owner = localStorage.getItem(A.OWNER_KEY);
       const remote = await pull();
+      const sameOwner = !owner || owner === u.id;
+      if (remote && sameOwner && (!owner || isDirty())) {
+        // First sign-in on this browser, or changes here that were never uploaded: merge, never overwrite.
+        const merged = mergeData(snapshot(), remote.data, isDirty() ? 'local' : 'remote');
+        localStorage.setItem(A.OWNER_KEY, u.id);
+        importRemote(merged, true);
+        await push();
+        return;
+      }
       if (remote && (!isDirty() || (owner && owner !== u.id))) {
         localStorage.setItem(A.OWNER_KEY, u.id);
         setDirty(false);
